@@ -215,6 +215,13 @@ func emailHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	loadEnv()
+
+	// Health check handler
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "Service is up")
+	})
+
 	http.HandleFunc("/send-email", emailHandler)
 
 	port := os.Getenv("PORT")
