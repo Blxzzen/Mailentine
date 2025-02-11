@@ -58,6 +58,8 @@ func getDayCount(filename string) int {
 	duration := time.Since(startDate).Hours() / 24.0
 
 	// Set dayCount to the integer part + 1
+	// As per current hosting in GMT I may need to get rid of the plus one
+	// or maybe rework how time is found entirely instead of OS based
 	dayCount := int(duration) + 1
 
 	fmt.Println("Start Date:", startDate.Format("2006-01-02"))
@@ -173,7 +175,7 @@ func sendEmail(day int, message string) error {
 	}
 	defer wc.Close()
 
-	subject := fmt.Sprintf("Love Letter Day #%d 💌", day)
+	subject := fmt.Sprintf("Mailentine Day #%d 💌", day)
 	body := message
 	msgData := []byte("To: " + receiverEmail + "\r\n" +
 		"Subject: " + subject + "\r\n" +
@@ -214,6 +216,11 @@ func emailHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	loadEnv()
 	http.HandleFunc("/send-email", emailHandler)
-	fmt.Println("Server started on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	fmt.Println("Server starting on port", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
