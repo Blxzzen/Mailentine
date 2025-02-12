@@ -8,7 +8,7 @@ Mailentine is a web service that allows you to send emails to a friend or partne
 ## Quick Start Guide:
 <br>
 
-1. Install Go ([official installation guide](https://go.dev/doc/install))
+1. Install Go (<a href="https://go.dev/doc/install" target="_blank">official installation guide</a>)
 
 2. Clone the Mailentine Repository:
     ```bash
