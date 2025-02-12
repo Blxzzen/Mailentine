@@ -1,0 +1,14 @@
+{
+
+    "_comment": "RENAME THIS FILE TO 'messages.json' AND DELETE THIS COMMENT LINE",
+
+    "start_date": "2025-02-14",
+    "messages": [
+      { "day": 1, 
+      "text": "Example Message 1" },
+      { "day": 2, 
+      "text": "Example Message 2" },
+      { "day": 3, 
+      "text": "Example Message 3" }
+    ]
+  }

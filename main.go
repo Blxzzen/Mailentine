@@ -14,17 +14,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type StartDate struct {
-	StartDate string `json:"start_date"`
-}
-
-func loadEnv() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Warning: No .env file found, using system environment variables.")
-	}
-}
-
 type Message struct {
 	Day  int    `json:"day"`
 	Text string `json:"text"`
@@ -35,8 +24,14 @@ type Data struct {
 	Messages  []Message `json:"messages"`
 }
 
+func loadEnv() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Warning: No .env file found, using system environment variables.")
+	}
+}
+
 func getDayCount(filename string) int {
-	// If the file doesn't exist, create it with today's date and an empty messages array
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		today := time.Now().Format("2006-01-02")
 		data := Data{
@@ -49,7 +44,6 @@ func getDayCount(filename string) int {
 		return 1
 	}
 
-	// File exists: read the start_date from the combined file
 	jsonData, err := os.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Failed to read file: %v", err)
@@ -94,11 +88,9 @@ func getTodaysMessage(filename string, day int) (int, string, bool) {
 }
 
 func sendEmail(day int, message string) error {
-	smtpServer := os.Getenv("SMTP_SERVER")
-	smtpPort := os.Getenv("SMTP_PORT")
-	if smtpPort == "" {
-		smtpPort = "587" // default to 587 if not set
-	}
+	smtpServer := "smtp.gmail.com"
+	smtpPort := "587"
+
 	senderEmail := os.Getenv("SENDER_EMAIL")
 	senderPass := os.Getenv("SENDER_PASS")
 	receiverEmail := os.Getenv("RECEIVER_EMAIL")
@@ -115,7 +107,6 @@ func sendEmail(day int, message string) error {
 		fmt.Println("Error dialing SMTP server:", err)
 		return err
 	}
-	// Set an initial deadline to avoid hanging indefinitely
 	conn.SetDeadline(time.Now().Add(30 * time.Second))
 	defer conn.Close()
 	fmt.Println("Dialed SMTP server successfully.")
@@ -129,14 +120,12 @@ func sendEmail(day int, message string) error {
 	fmt.Println("SMTP client created.")
 
 	if ok, _ := client.Extension("STARTTLS"); ok {
-		// Set a longer deadline for the TLS handshake (60 seconds)
 		conn.SetDeadline(time.Now().Add(60 * time.Second))
 		fmt.Println("Starting TLS via STARTTLS...")
 		if err = client.StartTLS(tlsConfig); err != nil {
 			fmt.Println("Error starting TLS:", err)
 			return err
 		}
-		// Clear the deadline after handshake completes
 		conn.SetDeadline(time.Time{})
 		fmt.Println("TLS started.")
 	} else {
@@ -207,7 +196,6 @@ func emailHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Email sent for Day %d", day)
 }
 
-// Middleware function for basic HTTP auth
 func basicAuth(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
@@ -223,13 +211,11 @@ func basicAuth(handler http.HandlerFunc) http.HandlerFunc {
 func main() {
 	loadEnv()
 
-	// Health check handler
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "Service is up")
 	})
 
-	// Actual email sending endpoint, wrapped with auth
 	http.HandleFunc("/send-email", basicAuth(emailHandler))
 
 	port := os.Getenv("PORT")
