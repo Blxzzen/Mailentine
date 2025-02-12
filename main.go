@@ -25,76 +25,70 @@ func loadEnv() {
 	}
 }
 
+type Message struct {
+	Day  int    `json:"day"`
+	Text string `json:"text"`
+}
+
+type Data struct {
+	StartDate string    `json:"start_date"`
+	Messages  []Message `json:"messages"`
+}
+
 func getDayCount(filename string) int {
-	// If file doesn't exist, set today as the start date
+	// If the file doesn't exist, create it with today's date and an empty messages array
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		today := time.Now().Format("2006-01-02")
-		startData := StartDate{StartDate: today}
-		data, _ := json.Marshal(startData)
-		_ = os.WriteFile(filename, data, 0644)
+		data := Data{
+			StartDate: today,
+			Messages:  []Message{},
+		}
+		jsonData, _ := json.Marshal(data)
+		_ = os.WriteFile(filename, jsonData, 0644)
 		fmt.Println("First time running! Setting today as Day 1.")
 		return 1
 	}
 
-	// Read start date from file
-	data, err := os.ReadFile(filename)
+	// File exists: read the start_date from the combined file
+	jsonData, err := os.ReadFile(filename)
 	if err != nil {
-		log.Fatalf("Failed to read start date file: %v", err)
+		log.Fatalf("Failed to read file: %v", err)
+	}
+	var d Data
+	err = json.Unmarshal(jsonData, &d)
+	if err != nil {
+		log.Fatalf("Failed to parse JSON: %v", err)
 	}
 
-	var start StartDate
-	err = json.Unmarshal(data, &start)
-	if err != nil {
-		log.Fatalf("Failed to parse start date file: %v", err)
-	}
-
-	// Parse using local timezone
-	startDate, err := time.ParseInLocation("2006-01-02", start.StartDate, time.Local)
+	startDate, err := time.ParseInLocation("2006-01-02", d.StartDate, time.Local)
 	if err != nil {
 		log.Fatalf("Failed to parse start date: %v", err)
 	}
 
-	// Calculate elapsed time in days as a float
-	duration := time.Since(startDate).Hours() / 24.0
-
-	// Set dayCount to the integer part + 1
-	// As per current hosting in GMT I may need to get rid of the plus one
-	// or maybe rework how time is found entirely instead of OS based
-	dayCount := int(duration) + 1
-
+	dayCount := int(time.Since(startDate).Hours()/24.0) + 1
 	fmt.Println("Start Date:", startDate.Format("2006-01-02"))
-	fmt.Printf("Elapsed Days: %.6f\n", duration)
-	fmt.Println("Calculated Day Count:", dayCount)
+	fmt.Printf("Calculated Day Count: %d\n", dayCount)
 	return dayCount
 }
 
 func getTodaysMessage(filename string, day int) (int, string, bool) {
 	fmt.Println("Reading messages.json file...")
-
-	data, err := os.ReadFile(filename)
+	jsonData, err := os.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Failed to read file: %v", err)
 	}
-
-	var messages struct {
-		Messages []struct {
-			Day  int    `json:"day"`
-			Text string `json:"text"`
-		} `json:"messages"`
-	}
-
-	err = json.Unmarshal(data, &messages)
+	var d Data
+	err = json.Unmarshal(jsonData, &d)
 	if err != nil {
 		log.Fatalf("Failed to parse JSON: %v", err)
 	}
 
-	for _, msg := range messages.Messages {
+	for _, msg := range d.Messages {
 		if msg.Day == day {
 			fmt.Println("Found message for Day", day)
 			return day, msg.Text, true
 		}
 	}
-
 	fmt.Println("No message found for Day", day)
 	return day, "", false
 }
