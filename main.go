@@ -213,6 +213,19 @@ func emailHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Email sent for Day %d", day)
 }
 
+// Middleware function for basic HTTP auth
+func basicAuth(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		if !ok || username != os.Getenv("USER") || password != os.Getenv("PASS") {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		handler(w, r)
+	}
+}
+
 func main() {
 	loadEnv()
 
@@ -222,7 +235,8 @@ func main() {
 		fmt.Fprintln(w, "Service is up")
 	})
 
-	http.HandleFunc("/send-email", emailHandler)
+	// Actual email sending endpoint, wrapped with auth
+	http.HandleFunc("/send-email", basicAuth(emailHandler))
 
 	port := os.Getenv("PORT")
 	if port == "" {
